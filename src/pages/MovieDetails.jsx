@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getMovie, getCredits, getVideos } from '../api'
-import { useFavorites } from '../favorites'
+import { getMovie, getCredits, getVideos, getSimilar } from '../api'
+import { useLibrary } from '../library'
+import Rail from '../components/Rail'
+import TrailerModal from '../components/TrailerModal'
 import { IMG_BACKDROP, IMG_POSTER, IMG_PROFILE } from '../config'
 import Spinner from '../components/Spinner'
 import ErrorBox from '../components/ErrorBox'
@@ -13,12 +15,15 @@ export default function MovieDetails() {
   const [trailer, setTrailer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { toggle, isFavorite } = useFavorites()
+  const lib = useLibrary()
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError('')
+    setCopied(false)
     Promise.all([getMovie(id), getCredits(id), getVideos(id)])
       .then(([movieData, creditsData, videosData]) => {
         if (cancelled) return
@@ -57,27 +62,26 @@ export default function MovieDetails() {
           <h1>{movie.title} <span className="details-year">({year})</span></h1>
           {movie.tagline && <p className="tagline">“{movie.tagline}”</p>}
           <div className="details-meta">
-            <span>★ {movie.vote_average?.toFixed(1)} ({movie.vote_count} votes)</span>
+            <span>{movie.vote_count > 0 ? `★ ${movie.vote_average.toFixed(1)} (${movie.vote_count} votes)` : 'Not rated yet'}</span>
             {movie.runtime > 0 && <span>{hours}h {minutes}m</span>}
             <span>{movie.genres?.map((g) => g.name).join(', ')}</span>
           </div>
           <p className="overview">{movie.overview || 'No overview available.'}</p>
-          <button className={`btn ${isFavorite(movie.id) ? 'btn-danger' : ''}`} onClick={() => toggle(movie)}>
-            {isFavorite(movie.id) ? '♥ Remove from favorites' : '♡ Add to favorites'}
-          </button>
-          {trailer && (
-            <>
-              <h2>Official trailer</h2>
-              <div className="trailer">
-                <iframe
-                  src={`https://www.youtube.com/embed/${trailer.key}`}
-                  title={`${movie.title} official trailer`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </>
-          )}
+          <div className="detail-actions">
+            {trailer && <button className="btn" onClick={() => setOpen(true)}>▶ Watch trailer</button>}
+            <button className={`btn btn-ghost ${lib.has(movie.id, 'favorite') ? 'is-on' : ''}`} aria-pressed={lib.has(movie.id, 'favorite')} onClick={() => lib.toggle(movie, 'favorite')}>
+              {lib.has(movie.id, 'favorite') ? '♥ Favorite' : '♡ Favorite'}
+            </button>
+            <button className={`btn btn-ghost ${lib.has(movie.id, 'watchlist') ? 'is-on' : ''}`} aria-pressed={lib.has(movie.id, 'watchlist')} onClick={() => lib.toggle(movie, 'watchlist')}>
+              {lib.has(movie.id, 'watchlist') ? '✓ In watchlist' : '+ Watchlist'}
+            </button>
+            <button className={`btn btn-ghost ${lib.has(movie.id, 'watched') ? 'is-on' : ''}`} aria-pressed={lib.has(movie.id, 'watched')} onClick={() => lib.toggle(movie, 'watched')}>
+              {lib.has(movie.id, 'watched') ? '✓ Watched' : 'Mark watched'}
+            </button>
+            <button className="btn btn-ghost" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true) } catch { setCopied(false) } }}>
+              {copied ? 'Link copied' : 'Copy link'}
+            </button>
+          </div>
           {cast.length > 0 && (
             <>
               <h2>Top cast</h2>
@@ -96,9 +100,13 @@ export default function MovieDetails() {
               </div>
             </>
           )}
-          <Link to="/" className="back-link">← Back to trending</Link>
+          <Link to="/browse" className="back-link">← Back to browse</Link>
         </div>
       </div>
+      <div className="details-more">
+        <Rail key={movie.id} title="You might also like" load={() => getSimilar(movie.id).then((d) => d.results.slice(0, 16))} />
+      </div>
+      {open && trailer && <TrailerModal video={trailer} title={movie.title} onClose={() => setOpen(false)} />}
     </article>
   )
 }

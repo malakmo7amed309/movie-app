@@ -8,21 +8,22 @@ that persists between visits.
 
 ## Screenshots
 
-| Home - trending | Movie details |
+| Home | Browse |
 | --- | --- |
-| ![Home](docs/showcase.gif) | ![Details](docs/screenshot-details.png) |
+| ![Home](docs/screenshot-home.png) | ![Browse](docs/screenshot-browse.png) |
 
-| Search | Mobile |
+| Movie details | Mobile |
 | --- | --- |
-| ![Search](docs/screenshot-search.png) | ![Mobile](docs/screenshot-mobile.png) |
+| ![Details](docs/screenshot-details.png) | ![Mobile](docs/screenshot-mobile.png) |
 
 ## Features
 
-- Trending movies of the week with pagination
-- Live search with debouncing (searches as you type, without spamming the API)
-- Movie details page: backdrop, rating, runtime, genres, overview and top 8 cast
-- Favorites: add/remove from any page, saved to localStorage
-- Loading spinner and friendly error states with retry on every screen
+- Home with a featured trending movie (trailer, details, watchlist) and four rows: trending, in theaters, top rated, upcoming
+- Browse page: pick a collection, or filter by genre, year, minimum rating and sort order. Filters live in the URL and results load page by page
+- Search with debounce, results in the URL, load more, and your recent searches. Press `/` on any page to jump to the search box
+- Movie details: backdrop, rating, runtime, genres, overview, trailer in a modal, top cast and recommendations
+- Library with three lists (favorites, watchlist, watched), sorting and clear with confirmation. Saved in localStorage. Old favorites are migrated
+- Loading skeletons, error states with working retry, keyboard friendly, skip link, reduced-motion support
 - Fully responsive, custom dark cinema theme (no UI framework)
 
 ## Tech stack

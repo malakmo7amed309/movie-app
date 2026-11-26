@@ -1,9 +1,10 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Search from './pages/Search'
 import MovieDetails from './pages/MovieDetails'
-import Favorites from './pages/Favorites'
+import Browse from './pages/Browse'
+import Library from './pages/Library'
 import NotFound from './pages/NotFound'
 
 const router = createBrowserRouter(
@@ -15,7 +16,9 @@ const router = createBrowserRouter(
         { index: true, element: <Home /> },
         { path: 'search', element: <Search /> },
         { path: 'movie/:id', element: <MovieDetails /> },
-        { path: 'favorites', element: <Favorites /> },
+        { path: 'browse', element: <Browse /> },
+        { path: 'library', element: <Library /> },
+        { path: 'favorites', element: <Navigate to="/library" replace /> },
         { path: '*', element: <NotFound /> },
       ],
     },

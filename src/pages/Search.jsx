@@ -1,64 +1,59 @@
 import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { searchMovies } from '../api'
-import { useFavorites } from '../favorites'
-import MovieCard from '../components/MovieCard'
-import Spinner from '../components/Spinner'
-import ErrorBox from '../components/ErrorBox'
+import { usePagedMovies } from '../hooks'
+import MovieGrid from '../components/MovieGrid'
+
+const KEY = 'cinescope-recent-searches'
+const readRecent = () => {
+  try { return JSON.parse(localStorage.getItem(KEY)) || [] } catch { return [] }
+}
 
 export default function Search() {
-  const [query, setQuery] = useState('')
-  const [debounced, setDebounced] = useState('')
-  const [movies, setMovies] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { toggle, isFavorite } = useFavorites()
+  const [params, setParams] = useSearchParams()
+  const q = (params.get('q') || '').trim()
+  const [text, setText] = useState(q)
+  const [recent, setRecent] = useState(readRecent)
 
-  // Debounce: only search 400ms after the user stops typing
+  useEffect(() => setText(q), [q])
+  // Debounce: update the URL 400ms after the user stops typing.
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), 400)
-    return () => clearTimeout(timer)
-  }, [query])
+    if (text.trim() === q) return
+    const t = setTimeout(() => setParams(text.trim() ? { q: text.trim() } : {}, { replace: true }), 400)
+    return () => clearTimeout(t)
+  }, [text, q, setParams])
 
+  // Remember searches that actually returned something.
+  const { movies, loading, error, hasMore, loadMore, retry } = usePagedMovies(
+    (page) => (q ? searchMovies(q, page) : Promise.resolve({ results: [], total_pages: 1 })),
+    [q],
+  )
   useEffect(() => {
-    if (!debounced) {
-      setMovies([])
-      return
-    }
-    let cancelled = false
-    setLoading(true)
-    setError('')
-    searchMovies(debounced)
-      .then((data) => !cancelled && setMovies(data.results))
-      .catch(() => !cancelled && setError('Search failed. Check your connection and try again.'))
-      .finally(() => !cancelled && setLoading(false))
-    return () => { cancelled = true }
-  }, [debounced])
+    if (!q || loading || movies.length === 0) return
+    const next = [q, ...readRecent().filter((r) => r.toLowerCase() !== q.toLowerCase())].slice(0, 6)
+    localStorage.setItem(KEY, JSON.stringify(next))
+    setRecent(next)
+  }, [q, loading, movies.length])
+
+  const clearRecent = () => { localStorage.removeItem(KEY); setRecent([]) }
 
   return (
     <>
       <section className="page-header">
         <h1>Search movies</h1>
-        <input
-          type="search"
-          className="search-input"
-          placeholder="Type a movie title..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search movies"
-        />
+        <input type="search" className="search-input" placeholder="Type a movie title..." value={text} onChange={(e) => setText(e.target.value)} aria-label="Search movies" autoFocus />
       </section>
-      {loading ? (
-        <Spinner />
-      ) : error ? (
-        <ErrorBox message={error} />
-      ) : debounced && movies.length === 0 ? (
-        <p className="empty-state">No movies found for “{debounced}”.</p>
+      {!q ? (
+        recent.length > 0 ? (
+          <section>
+            <div className="rail-head"><h2>Recent searches</h2><button className="see-all link-btn" onClick={clearRecent}>Clear</button></div>
+            <div className="chips">
+              {recent.map((r) => <Link key={r} className="chip" to={`/search?q=${encodeURIComponent(r)}`}>{r}</Link>)}
+            </div>
+          </section>
+        ) : <p className="empty-state">Search by title. Press / on any page to jump here.</p>
       ) : (
-        <div className="movie-grid">
-          {movies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} isFavorite={isFavorite(movie.id)} onToggleFavorite={toggle} />
-          ))}
-        </div>
+        <MovieGrid movies={movies} loading={loading} error={error} hasMore={hasMore} onMore={loadMore} onRetry={retry} empty={`No movies found for “${q}”.`} />
       )}
     </>
   )
