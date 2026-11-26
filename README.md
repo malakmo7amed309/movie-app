@@ -10,7 +10,7 @@ that persists between visits.
 
 | Home - trending | Movie details |
 | --- | --- |
-| ![Home](docs/screenshot-home.png) | ![Details](docs/screenshot-details.png) |
+| ![Home](docs/showcase.gif) | ![Details](docs/screenshot-details.png) |
 
 | Search | Mobile |
 | --- | --- |
