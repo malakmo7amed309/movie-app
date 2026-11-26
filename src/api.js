@@ -25,3 +25,8 @@ export async function getCredits(id) {
   const { data } = await tmdb.get(`/movie/${id}/credits`)
   return data
 }
+
+export async function getVideos(id) {
+  const { data } = await tmdb.get(`/movie/${id}/videos`)
+  return data
+}

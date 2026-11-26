@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getMovie, getCredits } from '../api'
+import { getMovie, getCredits, getVideos } from '../api'
 import { useFavorites } from '../favorites'
 import { IMG_BACKDROP, IMG_POSTER, IMG_PROFILE } from '../config'
 import Spinner from '../components/Spinner'
@@ -10,6 +10,7 @@ export default function MovieDetails() {
   const { id } = useParams()
   const [movie, setMovie] = useState(null)
   const [cast, setCast] = useState([])
+  const [trailer, setTrailer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { toggle, isFavorite } = useFavorites()
@@ -18,11 +19,17 @@ export default function MovieDetails() {
     let cancelled = false
     setLoading(true)
     setError('')
-    Promise.all([getMovie(id), getCredits(id)])
-      .then(([movieData, creditsData]) => {
+    Promise.all([getMovie(id), getCredits(id), getVideos(id)])
+      .then(([movieData, creditsData, videosData]) => {
         if (cancelled) return
         setMovie(movieData)
         setCast(creditsData.cast.slice(0, 8))
+        const vids = videosData.results || []
+        const pick =
+          vids.find((v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ||
+          vids.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ||
+          vids.find((v) => v.site === 'YouTube')
+        setTrailer(pick || null)
       })
       .catch(() => !cancelled && setError('Could not load this movie. It may not exist.'))
       .finally(() => !cancelled && setLoading(false))
@@ -58,6 +65,19 @@ export default function MovieDetails() {
           <button className={`btn ${isFavorite(movie.id) ? 'btn-danger' : ''}`} onClick={() => toggle(movie)}>
             {isFavorite(movie.id) ? '♥ Remove from favorites' : '♡ Add to favorites'}
           </button>
+          {trailer && (
+            <>
+              <h2>Official trailer</h2>
+              <div className="trailer">
+                <iframe
+                  src={`https://www.youtube.com/embed/${trailer.key}`}
+                  title={`${movie.title} official trailer`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </>
+          )}
           {cast.length > 0 && (
             <>
               <h2>Top cast</h2>
